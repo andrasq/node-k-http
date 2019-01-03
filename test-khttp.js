@@ -47,11 +47,13 @@ if (!process.cpuUsage) {
 describe ('khttp', function() {
     var echoServer;
     var echoRequest = null;
+    var echoCallCount = 0;
     var singletonCall;
     var uniq = null;
 
     before (function(done) {
         echoServer = http.createServer(function(req, res) {
+            echoCallCount += 1;
             var chunks = [];
             req.on('data', function(chunk) {
                 chunks.push(chunk);
@@ -84,6 +86,9 @@ describe ('khttp', function() {
                     return res.end("not json:" + echoResponse);
                 case '/garbled':
                     return res.socket.write("bad response\r\n\r\n");
+                case '/notfound':
+                    res.statusCode = 404;
+                    return res.end(req.path + ": Not Found");
                 }
             })
             req.on('error', function(err) {
@@ -259,11 +264,13 @@ describe ('khttp', function() {
 
     describe ('retried call', function() {
         it ('should return socket error', function(done) {
+            var callCount = echoCallCount;
             khttp.request(
                 { url: echoService + '/responseerror', retryCount: 2 },
                 function(err, res, body) {
                     assert(err);
                     assert.equal(err.code, 'ECONNRESET');
+                    assert.equal(echoCallCount, callCount + 1 + 2);
                     done();
                 }
             );
