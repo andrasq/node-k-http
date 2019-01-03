@@ -642,8 +642,17 @@ describe ('khttp', function() {
 
     describe ('performance', function() {
         it ('should use little cpu', function(done) {
-            var caller = httpRequest;
-            //var caller = require('request');
+            //var khttpClient = khttp.defaults({ agent: new http.Agent({ keepAlive: true, maxSockets: 10, maxFreeSockets: 2 }) });
+            var requestCaller = function httpRequest(uri, cb) {         // 96 ms cpu for 400 calls to bing, +0% (1.6 sec elapsed)
+                var req = http.request(uri, function(res) {
+                    var chunks = [];
+                    res.on('data', function(chunk) { chunks.push(chunk) });
+                    res.on('end', function() { cb(null, res, Buffer.concat(chunks)) });
+                })
+                req.end(uri.body);
+            };
+            var requestCaller = khttp.request;                          // 124 ms cpu for 400 calls to bing, +29% (2 sec elapsed)
+            //var requestCaller = require('request');                     // 1012 ms cpu for 400 calls to bing, +954% (14.7 sec elapsed)
             var doneCount = 0;
             var cpu = process.cpuUsage();
             var t1 = Date.now();
@@ -652,7 +661,7 @@ describe ('khttp', function() {
                 url: "http://bing.com/",                // 256b, 21ms
             }
             for (var callCount=0; callCount<10; callCount++) {
-                caller(uri, callDone);
+                requestCaller(uri, callDone);
             }
             function callDone(err, res, body) {
                 doneCount += 1;
@@ -660,9 +669,9 @@ describe ('khttp', function() {
                     var t2 = Date.now();
                     cpu = process.cpuUsage(cpu);
                     console.log("%s: %d https calls in %d ms, total cpu %d ms (%d bytes)",
-                        caller.name, callCount, t2-t1, cpu.user/1000 + cpu.system/1000, body.length);
+                        requestCaller.name, callCount, t2-t1, cpu.user/1000 + cpu.system/1000, body.length);
                     // timed on a cpu with cpufreq/scaling_governor set to "performance":
-                    // https small:    khttp: 20ms for 10, request: 32ms for 10 (1.5k)
+                    // https small (1.5k):  http: 4ms for 10, khttp: 16ms for 10, request: 32ms for 10
                     done();
                 }
             }
