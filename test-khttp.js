@@ -18,6 +18,7 @@
 var assert = require('assert');
 var http = require('http');
 var https = require('https');
+var events = require('events');
 var khttp = require('./');
 
 var httpRequest = khttp.request;
@@ -229,7 +230,7 @@ describe ('khttp', function() {
         })
     })
 
-    it ('should connect timeout error', function(done) {
+    it ('should return connect timeout error', function(done) {
         // hit a valid (plausible) ip address that does not respond
         var startTime = Date.now()
         httpRequest({ host: '10.0.0.1', path: '/', timeout: 20 }, function(err, res, body) {
@@ -253,6 +254,52 @@ describe ('khttp', function() {
             assert(err);
             assert(err.toString().indexOf('socket hang up') >= 0);
             done();
+        })
+    })
+
+    describe ('retried call', function() {
+        it ('should return socket error', function(done) {
+            khttp.request(
+                { url: echoService + '/responseerror', retryCount: 2 },
+                function(err, res, body) {
+                    assert(err);
+                    assert.equal(err.code, 'ECONNRESET');
+                    done();
+                }
+            );
+        })
+
+        it ('should use default options', function(done) {
+            khttp.request(
+                { url: 'http://localhost:12345/nonesuch', retryCount: 2 },
+                function(err, res, body) {
+                    assert(err);
+                    assert.equal(err.code, 'ECONNREFUSED');
+                    done();
+                }
+            );
+        })
+
+        it ('should retry call and return socket error', function(done) {
+            var callArgs = [];
+            var savedRequest = http.request;
+            http.request = function(options, cb) {
+                callArgs.push(arguments);
+                var cb = arguments[arguments.length - 1];
+                var res = new events.EventEmitter();
+                setImmediate(cb, res);
+                setImmediate(function(){ res.emit('error', { code: 'EMOCK', message: 'mock http error' }) });
+                var req = new events.EventEmitter();
+                req.end = function(){};
+                return req;
+            };
+            khttp.request({ url: 'http://localhost:12345/nonesuch', retryCount: 7, retryErrors: ['ETIMEDOUT', 'EMOCK'] }, function(err, res, body) {
+                http.request = savedRequest;
+                assert(err);
+                assert.equal(err.code, 'EMOCK');
+                assert.equal(callArgs.length, 1 + 7);
+                done();
+            })
         })
     })
 

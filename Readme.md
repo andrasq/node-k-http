@@ -59,6 +59,10 @@ k-http options (kinda like `request`):
   "Authorization: Basic" header.  The fields `{ user: , pass: }` are also accepted.
 - `raw` - do not wait for and decode body, return immediately and let the caller
   wait for `res.on('data')` events.
+- `retryCount` - number of times to attempt the call in case of connection errors.
+  Default 0, no retries.
+- `retryError` - list of error codes to retry if `retryCount` > 0.  Default is
+  `['ECONNRESET']` socket disconnects.
 
 http options used to construct a url from parts:
 - `protocol` - 'http:' or 'https:' (default 'http:')
@@ -100,6 +104,7 @@ Related Work
 Chane Log
 ---------
 
+- 1.4.0 - new `retryCount` option
 - 1.3.6 - fix: fix url + path combo, fix: send empty request body if `null` or `undefined`
 - 1.3.5 - make defaults() inherit settings from parent
 - 1.3.4 - fix headers edge case, simplify optimizeAccess, coverage buttons

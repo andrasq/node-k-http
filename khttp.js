@@ -32,6 +32,9 @@ function krequest( callerOptions, requestBody, callback ) {
     var options = { headers: {} };
     mergeOptions(options, callerOptions);
 
+    // retried calls return the `req` of the first attempt
+    if (options.retryCount > 0) return _krequestRetry(options, requestBody, callback);
+
     // parse url kinda like request
     if (options.url) {
         var parsedUrl = Url.parse(options.url);
@@ -160,6 +163,26 @@ function krequest( callerOptions, requestBody, callback ) {
     return req;
 }
 
+// function called by krequest() to retry calls to itself
+// options is a copy ok for us to alter
+function _krequestRetry( options, requestBody, callback ) {
+    var retryCount = options.retryCount;
+    var retryErrors = options.retryErrors && Array.isArray(options.retryErrors) ? options.retryErrors : [ 'ECONNRESET' ];
+    delete options.retryCount;
+    delete options.retryErrors;
+
+    var req = krequest(options, requestBody, function retryOrReturn(err, res, body) {
+        if (err && retryErrors.indexOf(err.code) >= 0 && retryCount > 0) {
+            retryCount -= 1;
+            krequest(options, requestBody, retryOrReturn);
+        }
+        else {
+            callback(err, res, body);
+        }
+    })
+
+    return req;
+}
 
 module.exports = {
     request: krequest,

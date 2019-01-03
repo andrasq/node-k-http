@@ -1,6 +1,6 @@
 {
   "name": "k-http",
-  "version": "1.3.6",
+  "version": "1.4.0",
   "description": "kinvey http",
   "main": "khttp.js",
   "engines": {
