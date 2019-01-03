@@ -21,8 +21,6 @@ var https = require('https');
 var events = require('events');
 var khttp = require('./');
 
-var httpRequest = khttp.request;
-
 var echoService = 'http://localhost:1337';
 var pingService = echoService + '/ping';
 var slowCallMs = 100;
@@ -110,7 +108,6 @@ describe ('khttp', function() {
 
     afterEach(function(done) {
         khttp.allowDuplicateCallbacks = false;
-        khttp.request = httpRequest;
         done();
     })
 
@@ -146,7 +143,7 @@ describe ('khttp', function() {
     })
 
     it ('should make a request to a url string', function(done) {
-        httpRequest(echoService, function(err, res, body) {
+        khttp.request(echoService, function(err, res, body) {
             assert.ifError(err);
             assert.equal(JSON.parse(body).url, '/');
             assert.equal(JSON.parse(body).method, 'GET');
@@ -155,7 +152,7 @@ describe ('khttp', function() {
     })
 
     it ('should make a request to the url with query and body', function(done) {
-        httpRequest({ url: pingService, body: uniq, query: 'a=1&b=2', headers: {Connection: 'close'} }, function(err, res, body) {
+        khttp.request({ url: pingService, body: uniq, query: 'a=1&b=2', headers: {Connection: 'close'} }, function(err, res, body) {
             assert(body.indexOf('PONG:') === 0);
             body = JSON.parse(body.slice(5));
             assert.equal(body.url, '/ping?a=1&b=2');
@@ -166,7 +163,7 @@ describe ('khttp', function() {
     })
 
     it ('should make a request to the host, port, path', function(done) {
-        httpRequest({ host: 'localhost', port: 1337, body: uniq, query: 'a=11&b=22', path: '/default' }, function(err, res, body) {
+        khttp.request({ host: 'localhost', port: 1337, body: uniq, query: 'a=11&b=22', path: '/default' }, function(err, res, body) {
             body = JSON.parse(body);
             assert.equal(body.url, '/default?a=11&b=22');
             assert.equal(body.body, uniq);
@@ -193,14 +190,14 @@ describe ('khttp', function() {
     })
 
     it ('should send empty body if null', function(done) {
-        httpRequest(echoService, null, function(err, res, body) {
+        khttp.request(echoService, null, function(err, res, body) {
             assert.strictEqual(JSON.parse(body).body, "");
             done();
         })
     })
 
     it ('should accept url as a function parameter', function(done) {
-        httpRequest({ url: echoService, body: 'some test body' }, uniq, function(err, res, body) {
+        khttp.request({ url: echoService, body: 'some test body' }, uniq, function(err, res, body) {
             assert.ifError(err);
             assert.equal(JSON.parse(body).body, uniq);
             done();
@@ -208,7 +205,7 @@ describe ('khttp', function() {
     })
 
     it ('should append query to path', function(done) {
-        httpRequest({ url: echoService + '?a=1', body: uniq, query: 'b=2' }, function(err, res, body) {
+        khttp.request({ url: echoService + '?a=1', body: uniq, query: 'b=2' }, function(err, res, body) {
             body = JSON.parse(body);
             assert.equal(body.url, '/?a=1&b=2');
             done();
@@ -216,7 +213,7 @@ describe ('khttp', function() {
     })
 
     it ('should use the specified method', function(done) {
-        httpRequest({ url: echoService, method: 'post', body: uniq }, function(err, res, body) {
+        khttp.request({ url: echoService, method: 'post', body: uniq }, function(err, res, body) {
             assert.ifError(err);
             body = JSON.parse(body);
             assert.equal(body.method, 'POST');
@@ -226,7 +223,7 @@ describe ('khttp', function() {
     })
 
     it ('should include the passed headers', function(done) {
-        httpRequest({ url: echoService, headers: {'x-uniq': uniq} }, function(err, res, body) {
+        khttp.request({ url: echoService, headers: {'x-uniq': uniq} }, function(err, res, body) {
             assert.ifError(err);
             assert.equal(JSON.parse(body).headers['x-uniq'], uniq);
             done();
@@ -234,13 +231,13 @@ describe ('khttp', function() {
     })
 
     it ('should return the client request object', function(done) {
-        var req = httpRequest({ url: echoService }, function(err, res, body) { });
+        var req = khttp.request({ url: echoService }, function(err, res, body) { });
         assert(req instanceof http.ClientRequest);
         done();
     })
 
     it ('should return the response body', function(done) {
-        var req = httpRequest({ url: echoService, body: uniq }, function(err, res, body) {
+        var req = khttp.request({ url: echoService, body: uniq }, function(err, res, body) {
             assert(res instanceof http.IncomingMessage);
             assert(typeof body === 'string');
             assert(res.body === body);
@@ -252,7 +249,7 @@ describe ('khttp', function() {
     it ('should return connect timeout error', function(done) {
         // hit a valid (plausible) ip address that does not respond
         var startTime = Date.now()
-        httpRequest({ host: '10.0.0.1', path: '/', timeout: 20 }, function(err, res, body) {
+        khttp.request({ host: '10.0.0.1', path: '/', timeout: 20 }, function(err, res, body) {
             assert(err);
             assert(Date.now() - startTime < 50);
             assert.equal(err.code, 'ETIMEDOUT');
@@ -261,7 +258,7 @@ describe ('khttp', function() {
     })
 
     it ('should time out socket', function(done) {
-        httpRequest({ url: echoService + '/slowcall', timeout: slowCallMs / 5 }, function(err, res, body) {
+        khttp.request({ url: echoService + '/slowcall', timeout: slowCallMs / 5 }, function(err, res, body) {
             assert(err);
             assert.equal(err.code, 'ESOCKETTIMEDOUT');
             done();
@@ -269,7 +266,7 @@ describe ('khttp', function() {
     })
 
     it ('should return socket error', function(done) {
-        httpRequest({ url: echoService + '/responseerror' }, function(err, res, body) {
+        khttp.request({ url: echoService + '/responseerror' }, function(err, res, body) {
             assert(err);
             assert(err.toString().indexOf('socket hang up') >= 0);
             done();
@@ -333,7 +330,7 @@ describe ('khttp', function() {
 
     it ('should return response error', function(done) {
         khttp.allowDuplicateCallbacks = true;
-        httpRequest({ url: echoService }, function(err, res, body) {
+        khttp.request({ url: echoService }, function(err, res, body) {
             if (!err) res.emit('error', new Error('deliberate res error'));
             if (err) {
                 khttp.allowDuplicateCallbacks = false;
@@ -344,7 +341,7 @@ describe ('khttp', function() {
 
     it ('should accept keepAlive Agent to reuse connection', function(done) {
         var agent = new http.Agent({ keepAlive: true });
-        httpRequest({ url: echoService, agent: agent }, function(err, res, body) {
+        khttp.request({ url: echoService, agent: agent }, function(err, res, body) {
             assert.ifError(err);
             body = JSON.parse(body);
             assert.equal(body.headers.connection, 'keep-alive');
@@ -358,7 +355,7 @@ describe ('khttp', function() {
         var t1 = Date.now();
         var cpu1 = process.cpuUsage();
         (function testLoop() {
-            httpRequest({ url: echoService, agent: agent }, function(err, res, body) {
+            khttp.request({ url: echoService, agent: agent }, function(err, res, body) {
                 callCount += 1;
                 if (err) return done(err);
                 if (callCount < 200) {
@@ -368,7 +365,7 @@ describe ('khttp', function() {
                     var cpu = process.cpuUsage(cpu1);
                     var t2 = Date.now();
                     console.log("%s: %d http calls in %d ms, total cpu %d ms (%d bytes)",
-                        httpRequest.name, callCount, t2-t1, cpu.user/1000 + cpu.system/1000, body.length);
+                        khttp.request.name, callCount, t2-t1, cpu.user/1000 + cpu.system/1000, body.length);
                     // note: 58ms elapsed < 80ms cpu due to i/o threads; run on a single core to get elapsed >= cpu used
                     return done();
                 }
@@ -377,7 +374,7 @@ describe ('khttp', function() {
     })
 
     it ('should accept string body', function(done) {
-        httpRequest({ url: echoService, body: uniq.toString() }, function(err, res, body) {
+        khttp.request({ url: echoService, body: uniq.toString() }, function(err, res, body) {
             assert.ifError(err);
             assert.strictEqual(JSON.parse(body).body, uniq.toString());
             done();
@@ -385,7 +382,7 @@ describe ('khttp', function() {
     })
 
     it ('should accept Buffer body', function(done) {
-        httpRequest({ url: echoService, body: new Buffer(uniq.toString()) }, function(err, res, body) {
+        khttp.request({ url: echoService, body: new Buffer(uniq.toString()) }, function(err, res, body) {
             assert.ifError(err);
             assert.strictEqual(JSON.parse(body).body, uniq.toString());
             done();
@@ -393,7 +390,7 @@ describe ('khttp', function() {
     })
 
     it ('should accept object body', function(done) {
-        httpRequest({ url: echoService, body: {uniq: uniq} }, function(err, res, body) {
+        khttp.request({ url: echoService, body: {uniq: uniq} }, function(err, res, body) {
             assert.ifError(err);
             assert.deepEqual(JSON.parse(JSON.parse(body).body), {uniq: uniq});
             done();
@@ -401,7 +398,7 @@ describe ('khttp', function() {
     })
 
     it ('should accept non-string, non-object body', function(done) {
-        httpRequest({ url: echoService, body: 1234 }, function(err, res, body) {
+        khttp.request({ url: echoService, body: 1234 }, function(err, res, body) {
             assert.ifError(err);
             assert.strictEqual(JSON.parse(body).body, '1234');
             done();
@@ -411,7 +408,7 @@ describe ('khttp', function() {
     it ('should send binary data', function(done) {
         var data = new Buffer(256);
         for (var i=0; i<256; i++) data[i] = i;
-        httpRequest({ method: 'POST', url: echoService, body: data }, function(err, res, body) {
+        khttp.request({ method: 'POST', url: echoService, body: data }, function(err, res, body) {
             assert.deepEqual(echoRequest, data);
             done();
         })
@@ -421,21 +418,21 @@ describe ('khttp', function() {
         var str = '';
         // skip the troublesome code points D800..DFFF which encode to FFFD but charCodeAt(i) remains D800
         for (var i=0; i<65536; i++) str += (i < 0xD800 || i > 0xDFFF) ? String.fromCharCode(i) : ' ';
-        httpRequest({ method: 'POST', url: echoService, body: str }, function(err, res, body) {
+        khttp.request({ method: 'POST', url: echoService, body: str }, function(err, res, body) {
             assert.strictEqual(JSON.parse(body).body, str);
             done();
         })
     })
 
     it ('encoding:null should return a Buffer of bytes', function(done) {
-        httpRequest({ url: echoService, encoding: null }, function(err, res, body) {
+        khttp.request({ url: echoService, encoding: null }, function(err, res, body) {
             assert(Buffer.isBuffer(body));
             done();
         })
     })
 
     it ('json:true should make application/json request and decode response into object', function(done) {
-        httpRequest({ url: echoService, json: true, body: { uniq: uniq } }, function(err, res, body) {
+        khttp.request({ url: echoService, json: true, body: { uniq: uniq } }, function(err, res, body) {
             assert.ifError(err);
             assert(typeof body === 'object');
             assert.equal(body.headers['content-type'], 'application/json');
@@ -445,7 +442,7 @@ describe ('khttp', function() {
     })
 
     it ('json:true should return non-json strings as-is', function(done) {
-        httpRequest({ url: echoService + '/notjson', json: true, body: {a: uniq} }, function(err, res, body) {
+        khttp.request({ url: echoService + '/notjson', json: true, body: {a: uniq} }, function(err, res, body) {
             assert.ifError(err);
             assert.equal(typeof body, 'string');
             assert(body.indexOf('not json:') == 0);
@@ -454,7 +451,7 @@ describe ('khttp', function() {
     })
 
     it ('json:true should not overwrite user specified content-type', function(done) {
-        httpRequest({ url: echoService, json: true, body: {uniq: uniq}, headers: {'content-type': 'user-content-type'} }, function(err, res, body) {
+        khttp.request({ url: echoService, json: true, body: {uniq: uniq}, headers: {'content-type': 'user-content-type'} }, function(err, res, body) {
             assert.ifError(err);
             assert(typeof body === 'object');
             assert.equal(body.headers['content-type'], 'user-content-type');
@@ -465,7 +462,7 @@ describe ('khttp', function() {
     it ('json:true should send non-json capable objects as plaintext', function(done) {
         var nthCall = 0;
         var requestBody = { toJSON: function() { throw new Error("not json capable") } };
-        httpRequest({ url: echoService, json: true }, requestBody, function(err, res, body) {
+        khttp.request({ url: echoService, json: true }, requestBody, function(err, res, body) {
             assert.equal(body.body, '[object Object]');
             done();
         })
@@ -473,7 +470,7 @@ describe ('khttp', function() {
 
     it ('auth:{user,pass} should be converted into Authorization header', function(done) {
         var uri = { url: echoService, auth: {user: 'test1', pass: 'test2'}, json: true };
-        httpRequest(uri, function(err, res, body) {
+        khttp.request(uri, function(err, res, body) {
             assert.equal(body.headers.authorization, 'Basic ' + new Buffer('test1:test2').toString('base64'));
             done();
         })
@@ -481,14 +478,14 @@ describe ('khttp', function() {
 
     it ('auth:{username,password} should be converted into Authorization header', function(done) {
         var uri = { url: echoService, auth: {username: 'test3', password: 'test4'}, json: true };
-        httpRequest(uri, function(err, res, body) {
+        khttp.request(uri, function(err, res, body) {
             assert.equal(body.headers.authorization, 'Basic ' + new Buffer('test3:test4').toString('base64'));
             done();
         })
     })
 
     it ('should make https calls', function(done) {
-        httpRequest({ url: "https://google.com" }, function(err, res, body) {
+        khttp.request({ url: "https://google.com" }, function(err, res, body) {
             assert.ifError(err);
             assert.equal(res.statusCode, 301);
             done();
@@ -497,7 +494,7 @@ describe ('khttp', function() {
 
     it ('should callback only once', function(done) {
         var calledCount = 0;
-        var req = httpRequest({ url: "http://localhost:1337" }, function(err, res, body) {
+        var req = khttp.request({ url: "http://localhost:1337" }, function(err, res, body) {
             calledCount += 1;
             req.emit('error', new Error("deliberate response error"));
             if (calledCount > 1) return done(new Error("too many callbacks"));
@@ -545,8 +542,10 @@ describe ('khttp', function() {
         it ('should use khttp.request to make request', function(done) {
             var caller = khttp.defaults({ json: true, headers: { 'Content-Length': -1 } });
             var called = false;
-            khttp.request = function(url, body, cb) { called = true; httpRequest(url, body, cb) };
+            var krequest = khttp.request;
+            khttp.request = function(url, body, cb) { called = true; krequest(url, body, cb) };
             caller.request("http://localhost:1337", function(err, res, body) {
+                khttp.request = krequest;
                 assert.ifError(err);
                 assert.equal(called, true);
                 assert.equal(typeof body, 'object');
