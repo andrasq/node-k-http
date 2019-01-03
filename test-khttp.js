@@ -126,8 +126,22 @@ describe ('khttp', function() {
     })
 
     it ('should export expected properties', function(done) {
-        assert.equal(typeof httpRequest, 'function');
+        assert.equal(typeof khttp.request, 'function');
+        assert.equal(typeof khttp.defaults, 'function');
+        assert.equal(typeof khttp.get, 'function');
+        assert.equal(typeof khttp.post, 'function');
+        assert.equal(typeof khttp.del, 'function');
         assert.equal(typeof khttp.allowDuplicateCallbacks, 'boolean');
+        done();
+    })
+
+    it ('defaults should have expected properties', function(done) {
+        var defaults = khttp.defaults();
+        assert.equal(typeof defaults.request, 'function');
+        assert.equal(typeof defaults.defaults, 'function');
+        assert.equal(typeof defaults.get, 'function');
+        assert.equal(typeof defaults.post, 'function');
+        assert.equal(typeof defaults.del, 'function');
         done();
     })
 
