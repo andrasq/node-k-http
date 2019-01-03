@@ -656,8 +656,8 @@ describe ('khttp', function() {
     describe ('performance', function() {
         it ('should use little cpu', function(done) {
             //var khttpClient = khttp.defaults({ agent: new http.Agent({ keepAlive: true, maxSockets: 10, maxFreeSockets: 2 }) });
-            var requestCaller = function httpRequest(uri, cb) {         // 96 ms cpu for 400 calls to bing, +0% (1.6 sec elapsed)
-                var req = http.request(uri, function(res) {
+            var requestCaller = function krequest(uri, cb) {            // 96 ms cpu for 400 calls to bing, +0% (1.6 sec elapsed)
+                var req = https.request(uri.url || uri, function(res) {
                     var chunks = [];
                     res.on('data', function(chunk) { chunks.push(chunk) });
                     res.on('end', function() { cb(null, res, Buffer.concat(chunks)) });
@@ -670,8 +670,8 @@ describe ('khttp', function() {
             var cpu = process.cpuUsage();
             var t1 = Date.now();
             var uri = {
-                //url: "https://google.com/login",        // 1.5k, 30ms
-                url: "http://bing.com/",                // 256b, 21ms
+                //url: "https://google.com/login",        // 1.5k, 20ms latency
+                url: "http://bing.com/",                // 256b, 12ms latency
             }
             for (var callCount=0; callCount<10; callCount++) {
                 requestCaller(uri, callDone);
@@ -684,7 +684,8 @@ describe ('khttp', function() {
                     console.log("%s: %d https calls in %d ms, total cpu %d ms (%d bytes)",
                         requestCaller.name, callCount, t2-t1, cpu.user/1000 + cpu.system/1000, body.length);
                     // timed on a cpu with cpufreq/scaling_governor set to "performance":
-                    // https small (1.5k):  http: 4ms for 10, khttp: 16ms for 10, request: 32ms for 10
+                    // https small (1.5k):  http: 16ms for 10, khttp: 16ms for 10, request: 32ms for 10
+                    // https small (1.5k):  http: 88ms for 100, khttp: 84ms for 100, request: 124ms for 10
                     done();
                 }
             }
