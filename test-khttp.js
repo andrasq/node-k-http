@@ -277,14 +277,21 @@ describe ('khttp', function() {
         })
 
         it ('should use default options', function(done) {
-            khttp.request(
-                { url: 'http://localhost:12345/nonesuch', retryCount: 2 },
-                function(err, res, body) {
-                    assert(err);
-                    assert.equal(err.code, 'ECONNREFUSED');
-                    done();
-                }
-            );
+            var client = khttp.defaults({ url: echoService, headers: { 'my-marker': 'test' } });
+            client.request({}, 'mockRequestBody', function(err, res, body) {
+                assert(!err);
+                assert(body.indexOf('"my-marker":"test"') > 0);
+                assert(body.indexOf('"url":"/"') > 0);
+                client.request(
+                    { url: echoService + '/someValidUrl', retryCount: 2 },
+                    function(err, res, body) {
+                        assert(!err);
+                        assert(body.indexOf('"my-marker":"test"') > 0);
+                        assert(body.indexOf('"url":"/someValidUrl"') > 0);
+                        done();
+                    }
+                );
+            })
         })
 
         it ('should retry call and return socket error', function(done) {
@@ -486,8 +493,8 @@ describe ('khttp', function() {
 
     describe ('options', function() {
         it ('options.raw should not wait for body', function(done) {
-            var httpRequest = khttp.defaults({ raw: true }).request;
-            httpRequest(echoService, function(err, res) {
+            var request = khttp.defaults({ raw: true }).request;
+            request(echoService, function(err, res) {
                 assert.ifError(err);
                 var chunks = [];
                 res.on('data', function(chunk) {
@@ -501,8 +508,8 @@ describe ('khttp', function() {
         })
 
         it ('options.raw should time out', function(done) {
-            var httpRequest = khttp.defaults({ raw: true }).request;
-            httpRequest({ url: echoService + '/slowcall', timeout: slowCallMs / 5 }, function(err, res, body) {
+            var request = khttp.defaults({ raw: true }).request;
+            request({ url: echoService + '/slowcall', timeout: slowCallMs / 5 }, function(err, res, body) {
                 assert(!err);
                 res.on('error', function(err) {
                     assert.equal(err.code, 'ESOCKETTIMEDOUT');
