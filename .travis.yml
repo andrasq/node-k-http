@@ -2,11 +2,13 @@ language: node_js
 node_js:
   - 0.10
   - 6
-  - 7
+  - 8
+  - 10
 install:
   - npm install .
   - npm install -g mocha@3.2.0
 after_success:
-  - npm install -g nyc@8.4.0
-  - npm install -g codecov
+  - if [ `node -p 'process.version.slice(0, 3)'` != "v8." ]; then exit; fi
+  - npm install -g nyc@8.4.0 codecov coveralls
   - nyc --reporter lcov npm test && codecov
+  - nyc report -r text-lcov | coveralls
