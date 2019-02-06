@@ -1,5 +1,5 @@
 {
-  "name": "k-http",
+  "name": "@progresskinvey/k-http",
   "version": "1.4.0",
   "description": "kinvey http",
   "main": "khttp.js",
