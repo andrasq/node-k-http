@@ -13,7 +13,7 @@
   "devDependencies": {
   },
   "scripts": {
-    "test": "mocha -b test-khttp.js",
+    "test": "qnit -b test-khttp.js",
     "coverage": "nyc --include khttp.js --reporter lcov --reporter text mocha test-khttp.js",
     "clean": "rm -rf .nyc_output coverage"
   }
