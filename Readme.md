@@ -61,7 +61,8 @@ k-http options (kinda like `request`):
 - `retryCount` - number of times to attempt the call in case of connection errors.
   Default 0, no retries.
 - `retryError` - list of error codes to retry if `retryCount` > 0.  Default is
-  `['ECONNRESET']` socket disconnects.
+  `['ECONNRESET']` socket disconnects.  Other possibilities include `ETIMEDOUT`
+  connect timeout and `ESOCKETTIMEDOUT` data timeout.
 
 http options used to construct a url from parts:
 - `protocol` - 'http:' or 'https:' (default 'http:')
